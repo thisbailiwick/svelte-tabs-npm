@@ -486,6 +486,7 @@ function instance($$self, $$props, $$invalidate) {
   });
 
   afterUpdate(() => {
+    selectTab(tabs[selectedTabIndex]);
     for (let i = 0; i < tabs.length; i++) {
       controls.update(controlsData => ({...controlsData, [tabs[i].id]: panels[i].id}));
       labeledBy.update(labeledByData => ({...labeledByData, [panels[i].id]: tabs[i].id}));
