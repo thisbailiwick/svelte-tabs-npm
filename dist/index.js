@@ -307,12 +307,6 @@
         }
     }
 
-    let id = 1;
-
-    function getId() {
-      return `svelte-tabs-${id++}`;
-    }
-
     const subscriber_queue = [];
     /**
      * Create a `Writable` store that allows both updating and reading by subscription.
@@ -430,16 +424,16 @@
 
     const TABS = {};
 
-    function removeAndUpdateSelected(arr, item, selectedStore) {
-      const index = arr.indexOf(item);
-      arr.splice(index, 1);
-      selectedStore.update(selected => selected === item ? (arr[index] || arr[arr.length - 1]) : selected);
+    function removeAndUpdateSelected(obj, item, selectedStore) {
+      delete obj[item];
+      //todo: need a way to get a visible tab and add it as selected here
+      // selectedStore.update(selected => selected === item ? (obj[item] || obj[obj.length - 1]) : selected);
     }
 
-    function registerItem(arr, item, selectedStore) {
-      arr.push(item);
+    function registerItem(obj, item, selectedStore) {
+      obj[item.id] = item;
       selectedStore.update(selected => selected || item);
-      onDestroy(() => removeAndUpdateSelected(arr, item, selectedStore));
+      onDestroy(() => removeAndUpdateSelected(obj, item));
     }
 
     function instance($$self, $$props, $$invalidate) {
@@ -447,11 +441,11 @@
 
     	
 
-      let { selectedTabIndex = 0 } = $$props;
+      let { selectedTabId = 'region-0', setCurrentRegionId } = $$props;
 
       const tabElements = [];
-      const tabs = [];
-      const panels = [];
+      const tabs = {};
+      const panels = {};
 
       const controls = writable({});
       const labeledBy = writable({});
@@ -460,9 +454,9 @@
       const selectedPanel = writable(null);
 
       function selectTab(tab) {
-        $$invalidate('selectedTabIndex', selectedTabIndex = tabs.indexOf(tab));
+        setCurrentRegionId(tab.id);
         selectedTab.set(tab);
-        selectedPanel.set(panels[selectedTabIndex]);
+        selectedPanel.set(panels[selectedTabId]);
       }
 
       setContext(TABS, {
@@ -488,11 +482,11 @@
       });
 
       onMount(() => {
-        selectTab(tabs[selectedTabIndex]);
+        selectTab(tabs[selectedTabId]);
       });
 
       afterUpdate(() => {
-        selectTab(tabs[selectedTabIndex]);
+        selectTab(tabs[selectedTabId]);
         for (let i = 0; i < tabs.length; i++) {
           controls.update(controlsData => ({...controlsData, [tabs[i].id]: panels[i].id}));
           labeledBy.update(labeledByData => ({...labeledByData, [panels[i].id]: tabs[i].id}));
@@ -527,16 +521,18 @@
     	let { $$slots = {}, $$scope } = $$props;
 
     	$$self.$set = $$props => {
-    		if ('selectedTabIndex' in $$props) $$invalidate('selectedTabIndex', selectedTabIndex = $$props.selectedTabIndex);
+    		if ('selectedTabId' in $$props) $$invalidate('selectedTabId', selectedTabId = $$props.selectedTabId);
+    		if ('setCurrentRegionId' in $$props) $$invalidate('setCurrentRegionId', setCurrentRegionId = $$props.setCurrentRegionId);
     		if ('$$scope' in $$props) $$invalidate('$$scope', $$scope = $$props.$$scope);
     	};
 
-    	$$self.$$.update = ($$dirty = { selectedTabIndex: 1 }) => {
-    		if ($$dirty.selectedTabIndex) ;
+    	$$self.$$.update = ($$dirty = { selectedTabId: 1 }) => {
+    		if ($$dirty.selectedTabId) ;
     	};
 
     	return {
-    		selectedTabIndex,
+    		selectedTabId,
+    		setCurrentRegionId,
     		selectedTab,
     		handleKeyDown,
     		$$slots,
@@ -547,7 +543,7 @@
     class Tabs extends SvelteComponent {
     	constructor(options) {
     		super();
-    		init(this, options, instance, create_fragment, safe_not_equal, ["selectedTabIndex"]);
+    		init(this, options, instance, create_fragment, safe_not_equal, ["selectedTabId", "setCurrentRegionId"]);
     	}
     }
 
@@ -555,8 +551,8 @@
 
     function add_css() {
     	var style = element("style");
-    	style.id = 'svelte-1fbofsd-style';
-    	style.textContent = ".svelte-tabs__tab.svelte-1fbofsd{border:none;border-bottom:2px solid transparent;color:#000000;cursor:pointer;list-style:none;display:inline-block;padding:0.5em 0.75em}.svelte-tabs__tab.svelte-1fbofsd:focus{outline:thin dotted}.svelte-tabs__selected.svelte-1fbofsd{border-bottom:2px solid #4F81E5;color:#4F81E5}";
+    	style.id = 'svelte-220rvi-style';
+    	style.textContent = ".svelte-tabs__tab.svelte-220rvi{border:none;border-bottom:2px solid transparent;color:#000000;cursor:pointer;list-style:none;display:inline-block;padding:0.5em 0.75em}.svelte-tabs__tab.svelte-220rvi:focus{outline:thin dotted}.svelte-tabs__selected.svelte-220rvi{border-bottom:2px solid #4F81E5;color:#4F81E5}";
     	append(document.head, style);
     }
 
@@ -577,7 +573,7 @@
     			attr(li, "aria-controls", li_aria_controls_value = ctx.$controls[ctx.tab.id]);
     			attr(li, "aria-selected", ctx.isSelected);
     			attr(li, "tabindex", li_tabindex_value = ctx.isSelected ? 0 : -1);
-    			attr(li, "class", "svelte-tabs__tab svelte-1fbofsd");
+    			attr(li, "class", "svelte-tabs__tab svelte-220rvi");
     			toggle_class(li, "svelte-tabs__selected", ctx.isSelected);
     			dispose = listen(li, "click", ctx.click_handler);
     		},
@@ -650,10 +646,12 @@
 
     	
 
+      let { regionId } = $$props;
+
       let tabEl;
 
       const tab = {
-        id: getId()
+        id: regionId
       };
       const { registerTab, registerTabElement, selectTab, selectedTab, controls } = getContext(TABS); component_subscribe($$self, selectedTab, $$value => { $selectedTab = $$value; $$invalidate('$selectedTab', $selectedTab); }); component_subscribe($$self, controls, $$value => { $controls = $$value; $$invalidate('$controls', $controls); });
 
@@ -679,6 +677,7 @@
     	}
 
     	$$self.$set = $$props => {
+    		if ('regionId' in $$props) $$invalidate('regionId', regionId = $$props.regionId);
     		if ('$$scope' in $$props) $$invalidate('$$scope', $$scope = $$props.$$scope);
     	};
 
@@ -687,6 +686,7 @@
     	};
 
     	return {
+    		regionId,
     		tabEl,
     		tab,
     		selectTab,
@@ -704,8 +704,8 @@
     class Tab extends SvelteComponent {
     	constructor(options) {
     		super();
-    		if (!document.getElementById("svelte-1fbofsd-style")) add_css();
-    		init(this, options, instance$1, create_fragment$1, safe_not_equal, []);
+    		if (!document.getElementById("svelte-220rvi-style")) add_css();
+    		init(this, options, instance$1, create_fragment$1, safe_not_equal, ["regionId"]);
     	}
     }
 
@@ -805,7 +805,7 @@
     	append(document.head, style);
     }
 
-    // (26:2) {#if $selectedPanel === panel}
+    // (28:1) {#if $selectedPanel === panel}
     function create_if_block(ctx) {
     	var current;
 
@@ -926,20 +926,24 @@
 
     	
 
+      let { regionId } = $$props;
+
       const panel = {
-        id: getId()
+        id: regionId
       };
-      const { registerPanel, selectedPanel, labeledBy } = getContext(TABS); component_subscribe($$self, selectedPanel, $$value => { $selectedPanel = $$value; $$invalidate('$selectedPanel', $selectedPanel); }); component_subscribe($$self, labeledBy, $$value => { $labeledBy = $$value; $$invalidate('$labeledBy', $labeledBy); });
+      const {registerPanel, selectedPanel, labeledBy} = getContext(TABS); component_subscribe($$self, selectedPanel, $$value => { $selectedPanel = $$value; $$invalidate('$selectedPanel', $selectedPanel); }); component_subscribe($$self, labeledBy, $$value => { $labeledBy = $$value; $$invalidate('$labeledBy', $labeledBy); });
 
       registerPanel(panel);
 
     	let { $$slots = {}, $$scope } = $$props;
 
     	$$self.$set = $$props => {
+    		if ('regionId' in $$props) $$invalidate('regionId', regionId = $$props.regionId);
     		if ('$$scope' in $$props) $$invalidate('$$scope', $$scope = $$props.$$scope);
     	};
 
     	return {
+    		regionId,
     		panel,
     		selectedPanel,
     		labeledBy,
@@ -954,7 +958,7 @@
     	constructor(options) {
     		super();
     		if (!document.getElementById("svelte-epfyet-style")) add_css$2();
-    		init(this, options, instance$3, create_fragment$3, safe_not_equal, []);
+    		init(this, options, instance$3, create_fragment$3, safe_not_equal, ["regionId"]);
     	}
     }
 

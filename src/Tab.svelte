@@ -4,10 +4,12 @@
   import getId from './id';
   import { TABS } from './Tabs.svelte';
 
+  export let regionId;
+
   let tabEl;
 
   const tab = {
-    id: getId()
+    id: regionId
   };
   const { registerTab, registerTabElement, selectTab, selectedTab, controls } = getContext(TABS);
 
@@ -32,7 +34,7 @@
     display: inline-block;
     padding: 0.5em 0.75em;
 	}
-	
+
   .svelte-tabs__tab:focus {
     outline: thin dotted;
   }

@@ -3,14 +3,15 @@
 </script>
 
 <script>
-  import { afterUpdate, setContext, onDestroy, onMount, tick } from 'svelte';
-  import { writable } from 'svelte/store';
+  import {afterUpdate, setContext, onDestroy, onMount, tick} from 'svelte';
+  import {writable} from 'svelte/store';
 
-  export let selectedTabIndex = 0;
+  export let selectedTabId = 'region-0';
+  export let setCurrentRegionId;
 
   const tabElements = [];
-  const tabs = [];
-  const panels = [];
+  const tabs = {};
+  const panels = {};
 
   const controls = writable({});
   const labeledBy = writable({});
@@ -18,22 +19,22 @@
   const selectedTab = writable(null);
   const selectedPanel = writable(null);
 
-  function removeAndUpdateSelected(arr, item, selectedStore) {
-    const index = arr.indexOf(item);
-    arr.splice(index, 1);
-    selectedStore.update(selected => selected === item ? (arr[index] || arr[arr.length - 1]) : selected);
+  function removeAndUpdateSelected(obj, item, selectedStore) {
+    delete obj[item];
+    //todo: need a way to get a visible tab and add it as selected here
+    // selectedStore.update(selected => selected === item ? (obj[item] || obj[obj.length - 1]) : selected);
   }
 
-  function registerItem(arr, item, selectedStore) {
-    arr.push(item);
+  function registerItem(obj, item, selectedStore) {
+    obj[item.id] = item;
     selectedStore.update(selected => selected || item);
-    onDestroy(() => removeAndUpdateSelected(arr, item, selectedStore));
+    onDestroy(() => removeAndUpdateSelected(obj, item, selectedStore));
   }
 
   function selectTab(tab) {
-    selectedTabIndex = tabs.indexOf(tab);
+    setCurrentRegionId(tab.id);
     selectedTab.set(tab);
-    selectedPanel.set(panels[selectedTabIndex]);
+    selectedPanel.set(panels[selectedTabId]);
   }
 
   setContext(TABS, {
@@ -59,20 +60,20 @@
   });
 
   onMount(() => {
-    selectTab(tabs[selectedTabIndex]);
+    selectTab(tabs[selectedTabId]);
   });
 
   afterUpdate(() => {
-    selectTab(tabs[selectedTabIndex]);
+    selectTab(tabs[selectedTabId]);
     for (let i = 0; i < tabs.length; i++) {
       controls.update(controlsData => ({...controlsData, [tabs[i].id]: panels[i].id}));
       labeledBy.update(labeledByData => ({...labeledByData, [panels[i].id]: tabs[i].id}));
     }
   });
 
-  $: selectedTabIndex, ()=>{
-    selectedTab.set(tabs[selectedTabIndex]);
-    selectedPanel.set(panels[selectedTabIndex]);
+  $: selectedTabId, () => {
+    selectedTab.set(tabs[selectedTabId]);
+    selectedPanel.set(panels[selectedTabId]);
   };
 
   async function handleKeyDown(event) {
